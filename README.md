@@ -23,7 +23,7 @@
    ```
 3. 进入仓库 Settings → Pages
 4. Source 选择 `Deploy from a branch`，分支选 `main`，目录选 `/ (root)`
-5. 保存后等一分钟左右，访问 `https://xiaohei-ui.github.io/markdown-viewer/`
+5. 保存后等一分钟左右，访问 `https://xiaohei-ui.github.io/markpad/`
 
 ## iPhone 添加到主屏幕
 
