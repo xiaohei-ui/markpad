@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#faf9f6">
+<link rel="manifest" href="manifest.json">
+<title>MarkPad</title>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #faf9f6;
+  --bg-card: #ffffff;
+  --bg-sidebar: #f5f3ef;
+  --text: #2c2c2c;
+  --text-secondary: #787774;
+  --accent: #d97706;
+  --accent-light: #fef3c7;
+  --border: #e7e5e4;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.08);
+  --radius: 12px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --font-serif: "New York", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  --font-mono: "SF Mono", "Fira Code", "Menlo", monospace;
+  --sidebar-width: 300px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --bg-card: #2c2c2e;
+  --bg-sidebar: #242426;
+  --text: #e5e5e7;
+  --text-secondary: #98989d;
+  --accent: #f59e0b;
+  --accent-light: #451a03;
+  --border: #3a3a3c;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ===== Layout ===== */
+.app {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  position: relative;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  padding-top: var(--safe-top);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+.sidebar-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.sidebar-title span {
+  color: var(--accent);
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.btn-primary:hover { opacity: 0.9; color: white; }
+
+.btn svg { width: 16px; height: 16px; }
+
+/* File List */
+.file-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px;
+}
+
+.file-list::-webkit-scrollbar { width: 4px; }
+.file-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.file-item:hover { background: var(--bg-card); }
+.file-item.active { background: var(--accent-light); }
+.file-item.active .file-name { color: var(--accent); font-weight: 600; }
+
+.file-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.file-info { flex: 1; min-width: 0; }
+
+.file-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.file-delete {
+  opacity: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.file-item:hover .file-delete { opacity: 1; }
+.file-delete:hover { background: #fee2e2; color: #dc2626; }
+
+.sidebar-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: calc(12px + var(--safe-bottom));
+}
+
+.file-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ===== Overlay ===== */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== Main Content ===== */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.topbar {
+  display: none;
+  align-items: center;
+  padding: 8px 16px;
+  padding-top: calc(8px + var(--safe-top));
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  gap: 12px;
+  min-height: 52px;
+}
+
+.topbar-title {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+/* ===== Content Area ===== */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 2rem;
+}
+
+.empty-title {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 0.9rem;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* Markdown Content */
+.markdown-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3,
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+  letter-spacing: -0.02em;
+}
+
+.markdown-body h1 { font-size: 1.8rem; margin-top: 0; }
+.markdown-body h2 { font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+.markdown-body h3 { font-size: 1.15rem; }
+
+.markdown-body p { margin-bottom: 1em; }
+.markdown-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+.markdown-body blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.5em 1em;
+  margin: 1em 0;
+  color: var(--text-secondary);
+  background: var(--accent-light);
+  border-radius: 0 8px 8px 0;
+}
+
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--bg-sidebar);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.markdown-body pre {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 1em 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 1em 0;
+}
+
+.markdown-body ul, .markdown-body ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.markdown-body li { margin-bottom: 0.3em; }
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+
+.markdown-body th, .markdown-body td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-body th { background: var(--bg-sidebar); font-weight: 600; }
+
+.markdown-body hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 2em 0;
+}
+
+.markdown-body input[type="checkbox"] {
+  margin-right: 6px;
+  accent-color: var(--accent);
+}
+
+/* ===== Drop Zone ===== */
+.drop-zone {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(217, 119, 6, 0.1);
+  border: 3px dashed var(--accent);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.drop-zone.active { display: flex; }
+
+.drop-zone-text {
+  font-family: var(--font-sans);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--bg-card);
+  padding: 20px 32px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  bottom: calc(24px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 300;
+  white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .topbar { display: flex; }
+  .markdown-body { padding: 24px 16px 60px; }
+  .markdown-body h1 { font-size: 1.5rem; }
+}
+
+@media (min-width: 769px) {
+  .sidebar-overlay { display: none !important; }
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.markdown-body { animation: fadeIn 0.3s ease; }
+
+/* ===== Print ===== */
+@media print {
+  .sidebar, .topbar { display: none !important; }
+  .main { height: auto; }
+  .content-area { overflow: visible; }
+  .markdown-body { max-width: 100%; padding: 0; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="overlay"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Mark<span>Pad</span></div>
+      <div class="sidebar-actions">
+        <button class="btn btn-primary" id="uploadBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          上传文件
+        </button>
+        <button class="btn" id="newBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新建
+        </button>
+      </div>
+    </div>
+    <div class="file-list" id="fileList"></div>
+    <div class="sidebar-footer">
+      <span class="file-count" id="fileCount">0 个文件</span>
+      <button class="theme-toggle" id="themeToggle" title="切换主题">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar" id="topbar">
+      <button class="menu-btn" id="menuBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-title" id="topbarTitle">MarkPad</div>
+    </div>
+    <div class="content-area" id="contentArea">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">M</div>
+        <div class="empty-title">欢迎使用 MarkPad</div>
+        <div class="empty-desc">上传 .md 文件开始阅读，或点击「新建」创建一篇笔记</div>
+      </div>
+      <div class="markdown-body" id="markdownBody" style="display:none;"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Drop Zone -->
+<div class="drop-zone" id="dropZone">
+  <div class="drop-zone-text">松手上传 Markdown 文件</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input -->
+<input type="file" id="fileInput" accept=".md,.markdown,.txt" multiple style="display:none">
+
+<!-- marked.js for Markdown parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+
+<script>
+// ===== IndexedDB Storage =====
+const DB_NAME = 'markpad-db';
+const DB_VERSION = 1;
+const STORE_NAME = 'files';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGetAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPut(file) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.put(file);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ===== App State =====
+let files = [];
+let activeFileId = null;
+
+// ===== DOM =====
+const $ = (sel) => document.querySelector(sel);
+const sidebar = $('#sidebar');
+const overlay = $('#overlay');
+const fileList = $('#fileList');
+const fileCount = $('#fileCount');
+const emptyState = $('#emptyState');
+const markdownBody = $('#markdownBody');
+const topbarTitle = $('#topbarTitle');
+const fileInput = $('#fileInput');
+const dropZone = $('#dropZone');
+const toast = $('#toast');
+
+// ===== Theme =====
+function getTheme() {
+  return localStorage.getItem('markpad-theme') || 'light';
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('markpad-theme', theme);
+  const icon = $('#themeIcon');
+  if (theme === 'dark') {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+}
+
+$('#themeToggle').addEventListener('click', () => {
+  setTheme(getTheme() === 'dark' ? 'light' : 'dark');
+});
+
+setTheme(getTheme());
+
+// ===== Toast =====
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ===== Markdown Rendering =====
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+function renderMarkdown(text) {
+  // Process checkbox syntax
+  const processed = text.replace(/^(\s*)-\s*\[([ xX])\]\s/gm, (match, space, checked) => {
+    return `${space}- <input type="checkbox" ${checked !== ' ' ? 'checked' : ''} disabled> `;
+  });
+  return marked.parse(processed);
+}
+
+// ===== File Management =====
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function formatDate(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+  if (diff < 604800000) return Math.floor(diff / 86400000) + ' 天前';
+  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+}
+
+async function loadFiles() {
+  files = await dbGetAll();
+  files.sort((a, b) => b.updatedAt - a.updatedAt);
+  renderFileList();
+}
+
+function renderFileList() {
+  fileCount.textContent = files.length + ' 个文件';
+
+  if (files.length === 0) {
+    fileList.innerHTML = '';
+    return;
+  }
+
+  fileList.innerHTML = files.map(f => `
+    <div class="file-item ${f.id === activeFileId ? 'active' : ''}" data-id="${f.id}">
+      <div class="file-icon">M</div>
+      <div class="file-info">
+        <div class="file-name">${escapeHtml(f.name)}</div>
+        <div class="file-meta">${formatSize(f.size)} · ${formatDate(f.updatedAt)}</div>
+      </div>
+      <button class="file-delete" data-id="${f.id}" title="删除">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+  `).join('');
+
+  // Bind events
+  fileList.querySelectorAll('.file-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.file-delete')) return;
+      openFile(el.dataset.id);
+    });
+  });
+
+  fileList.querySelectorAll('.file-delete').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteFile(el.dataset.id);
+    });
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function addFiles(fileObjects) {
+  let added = 0;
+  for (const file of fileObjects) {
+    if (!file.name.match(/\.(md|markdown|txt)$/i)) {
+      showToast('跳过非 Markdown 文件: ' + file.name);
+      continue;
+    }
+    const content = await file.text();
+    const record = {
+      id: generateId(),
+      name: file.name,
+      content: content,
+      size: file.size,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    await dbPut(record);
+    files.unshift(record);
+    added++;
+  }
+  if (added > 0) {
+    files.sort((a, b) => b.updatedAt - a.updatedAt);
+    renderFileList();
+    showToast(`已添加 ${added} 个文件`);
+    // Auto-open the first added file
+    if (files.length > 0) {
+      openFile(files[0].id);
+    }
+  }
+}
+
+function openFile(id) {
+  const file = files.find(f => f.id === id);
+  if (!file) return;
+
+  activeFileId = id;
+  emptyState.style.display = 'none';
+  markdownBody.style.display = 'block';
+  markdownBody.innerHTML = renderMarkdown(file.content);
+  topbarTitle.textContent = file.name;
+  renderFileList();
+
+  // Close sidebar on mobile
+  closeSidebar();
+
+  // Scroll to top
+  $('.content-area').scrollTop = 0;
+
+  // Store last opened
+  localStorage.setItem('markpad-last', id);
+}
+
+async function deleteFile(id) {
+  if (!confirm('确定删除这个文件吗？')) return;
+  await dbDelete(id);
+  files = files.filter(f => f.id !== id);
+
+  if (activeFileId === id) {
+    activeFileId = null;
+    emptyState.style.display = '';
+    markdownBody.style.display = 'none';
+    topbarTitle.textContent = 'MarkPad';
+    localStorage.removeItem('markpad-last');
+  }
+
+  renderFileList();
+  showToast('已删除');
+}
+
+function createNewFile() {
+  const name = prompt('文件名：', '未命名笔记.md');
+  if (!name) return;
+  const fileName = name.endsWith('.md') ? name : name + '.md';
+  const record = {
+    id: generateId(),
+    name: fileName,
+    content: '# ' + fileName.replace(/\.md$/, '') + '\n\n',
+    size: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  dbPut(record).then(() => {
+    files.unshift(record);
+    renderFileList();
+    openFile(record.id);
+    showToast('已创建');
+  });
+}
+
+// ===== Sidebar Toggle (mobile) =====
+function openSidebar() {
+  sidebar.classList.add('open');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+$('#menuBtn').addEventListener('click', openSidebar);
+overlay.addEventListener('click', closeSidebar);
+
+// ===== File Input =====
+$('#uploadBtn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    addFiles(Array.from(e.target.files));
+    fileInput.value = '';
+  }
+});
+
+$('#newBtn').addEventListener('click', createNewFile);
+
+// ===== Drag & Drop =====
+let dragCounter = 0;
+
+document.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  dragCounter++;
+  dropZone.classList.add('active');
+});
+
+document.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  dragCounter--;
+  if (dragCounter === 0) dropZone.classList.remove('active');
+});
+
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+});
+
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragCounter = 0;
+  dropZone.classList.remove('active');
+  if (e.dataTransfer.files.length > 0) {
+    addFiles(Array.from(e.dataTransfer.files));
+  }
+});
+
+// ===== Keyboard Shortcuts =====
+document.addEventListener('keydown', (e) => {
+  // Cmd/Ctrl + O = upload
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
+    e.preventDefault();
+    fileInput.click();
+  }
+  // Cmd/Ctrl + N = new file
+  if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+    e.preventDefault();
+    createNewFile();
+  }
+  // Escape = close sidebar
+  if (e.key === 'Escape') {
+    closeSidebar();
+  }
+});
+
+// ===== Service Worker (PWA) =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ===== Init =====
+(async function init() {
+  await loadFiles();
+
+  // Restore last opened file
+  const lastId = localStorage.getItem('markpad-last');
+  if (lastId && files.find(f => f.id === lastId)) {
+    openFile(lastId);
+  }
+})();
+</script>
+</body>
+</html>
