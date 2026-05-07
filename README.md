@@ -12,18 +12,7 @@
 - PWA 支持，iPhone 可添加到主屏幕
 - 数据存储在浏览器 IndexedDB 中，关闭后不丢失
 
-## 部署到 GitHub Pages
-
-1. 在 GitHub 上创建一个新仓库（比如 `markpad`）
-2. 把这三个文件推上去：
-   ```
-   index.html
-   manifest.json
-   sw.js
-   ```
-3. 进入仓库 Settings → Pages
-4. Source 选择 `Deploy from a branch`，分支选 `main`，目录选 `/ (root)`
-5. 保存后等一分钟左右，访问 `https://xiaohei-ui.github.io/markpad/`
+访问地址：https://xiaohei-ui.github.io/markpad/
 
 ## iPhone 添加到主屏幕
 
@@ -35,7 +24,7 @@
 ## 快捷键
 
 - `Ctrl/Cmd + O` — 上传文件
-- `Ctrl/Cmd + N` — 新建文件
+- `Ctrl/Cmd + F` — 搜索
 - `Esc` — 关闭侧边栏
 
 ## 技术
