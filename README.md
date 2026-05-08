@@ -1,6 +1,6 @@
 # MarkPad
 
-轻量的 Markdown 文件管理与查看工具。支持 iPhone / iPad / 桌面浏览器，可添加到主屏幕当作 App 使用。
+轻量的 Markdown 文件管理与查看工具。支持 iPhone / iPad /安卓/ 桌面浏览器，可添加到主屏幕当作 App 使用。
 
 ## 功能
 
